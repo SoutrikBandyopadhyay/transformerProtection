@@ -15,10 +15,17 @@ void lcdWrite(byte cmd){
   digitalWrite(CE,HIGH);
 }
 
-
-
 void setup() {
-      
+  //Setting Pin Modes of Display
+  pinMode(RST,OUTPUT);
+  pinMode(CE,OUTPUT);
+  pinMode(DC,OUTPUT);
+  pinMode(DIN,OUTPUT);
+  pinMode(CLK,OUTPUT);
+  digitalWrite(RST,LOW);
+  digitalWrite(RST,HIGH);
+
+  
 }
 
 void loop() {
