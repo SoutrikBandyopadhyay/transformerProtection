@@ -27,6 +27,9 @@
 #define loadRelay 3
 #define fanRelay 4
 
+const float voltageThreshold = 17;
+const float currentThreshold = 2;
+const float tempThreshold = 50;
 
 //Creating the instances
 
