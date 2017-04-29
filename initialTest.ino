@@ -86,11 +86,11 @@ void loop(){
   
   display.clearDisplay();
   display.print("V:");
-  display.println(analogRead(A4));
+  display.println(getVoltage());
   display.print("I:");
-  display.println(analogRead(A4));
+  display.println(getCurrent());
   display.print("T:");
-  display.println(analogRead(A4));
+  display.println(readTemp());
   if(analogRead(A4)>500){
     display.println("\nStatus:Not Okay");
   }
