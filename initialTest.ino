@@ -1,8 +1,15 @@
-//Vishal Kumar In the house
-#include "DHT.h"         
-#include "font.h"
+#include <Adafruit_GFX.h>
+#include <Adafruit_PCD8544.h>
+#include "DHT.h" 
 
-//Nokia 5110 Display Variables
+//TODO:Test the entire Circuit
+
+// pin 8 - Serial clock out (SCLK)
+// pin 9 - Serial data out (DIN)
+// pin 10 - Data/Command select (D/C)
+// pin 11 - LCD chip select (CS)
+// pin 12 - LCD reset (RST)
+
 
 #define RST 12
 #define CE 11
@@ -10,50 +17,38 @@
 #define DIN 9
 #define CLK 8
 
-// DHT Variables
 
-#define DHTPIN 2         
-#define DHTTYPE DHT11    
-DHT dht(DHTPIN, DHTTYPE);
+#define voltagePin A3
+#define currentPin A4
+#define tempPin 2
 
-// LCD Writer
+#define DHTTYPE DHT11
 
-void lcdWriteData(byte dat){
-  digitalWrite(DC,HIGH);
-  digitalWrite(CE,LOW);
-  shiftOut(DIN,CLK,MSBFIRST,dat);
-  digitalWrite(CE,HIGH);
+#define loadRelay 3
+#define fanRelay 4
+
+
+//Creating the instances
+
+DHT dht(tempPin, DHTTYPE);
+Adafruit_PCD8544 display = Adafruit_PCD8544(CLK,DIN,DC,CE,RST);
+
+
+float getVoltage(){
+  return analogRead(voltagePin)*5.0/1024*5.7/1.414;
 }
 
-void lcdWriteCmd(byte cmd){
-  digitalWrite(DC,LOW);
-  digitalWrite(CE,LOW);
-  shiftOut(DIN,CLK,MSBFIRST,cmd);
-  digitalWrite(CE,HIGH);
-}
-
-void lcdWriteChar(char ch){
-  for(int i=0;i<5;i++){
-    lcdWriteData(ASCII[ch - 0x20][i]);
-  }
-  lcdWriteData(0x00);
-}
-
-void lcdWrite(char *chs){
-  while(*chs){
-    lcdWriteChar(*chs++);
-  }
-}
-
-void clearScreen(){
-  for(int i = 0; i<504;i++){
-    lcdWriteData(0x00);
-  }
-}
-
-void lcdXY(int x, int y){
-  lcdWriteCmd(0x80 | x);
-  lcdWriteCmd(0x40 | y);
+float getCurrent(){
+  int mVperAmp = 66; // use 100 for 20A Module and 66 for 30A Module
+  int RawValue= 0;
+  int ACSoffset = 2500; 
+  double Voltage = 0;
+  double Amps = 0;
+  RawValue = analogRead(currentPin);
+  Voltage = (RawValue / 1024.0) * 5000; // Gets you mV
+  Amps = ((Voltage - ACSoffset) / mVperAmp);
+  
+  return Amps;
 }
 
 float readTemp(){
@@ -61,67 +56,45 @@ float readTemp(){
   return t;
 }
 
-void setup() {
-  //Setting Pin Modes of Display
-  pinMode(RST,OUTPUT);
-  pinMode(CE,OUTPUT);
-  pinMode(DC,OUTPUT);
-  pinMode(DIN,OUTPUT);
-  pinMode(CLK,OUTPUT);
-  digitalWrite(RST,LOW);
-  digitalWrite(RST,HIGH);
-  
-  //DHT Start
-  dht.begin(); 
 
-  //Display Data Input
-  lcdWriteCmd(0x21);
-  lcdWriteCmd(0xB8);
-  lcdWriteCmd(0x04);
-  lcdWriteCmd(0x14);
-  lcdWriteCmd(0x20);
-  lcdWriteCmd(0x0C);
 
-  clearScreen();
+
+void setup()   {
+  Serial.begin(9600);
+
+  display.begin();
   
-  lcdXY(15,2);
-  lcdWrite("Transformer");
-  lcdXY(16,3);
-  lcdWrite("Protection");
-  delay(5000);
-  clearScreen();
+  display.setContrast(50);
+
+
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setTextColor(BLACK);
+  display.setCursor(10,15);
+  display.println("Transformer");
+  display.println("  Protection");
+  display.display();
+  delay(2000);
+  display.clearDisplay();
 
 }
-char voltStr[8];
-char currStr[8];
-char tempStr[8];
 
-void loop() {
-
+void loop(){
   
-  float voltage = analogRead(A4)*5.0/1024;
-  lcdXY(0,1);
-  lcdWrite("V");
-  lcdXY(40,1); 
-  lcdWrite(dtostrf(voltage,5,2,voltStr));
-  lcdWrite(" V");
-
-  float x = 0;
-  lcdXY(0,2);
-  lcdWrite("I");
-  lcdXY(40,2); 
-  lcdWrite(dtostrf(x,5,2,currStr));
-  lcdWrite(" A");
-
-  
-  float temp = readTemp();
-  lcdXY(0,3);
-  lcdWrite("T");
-  lcdXY(40,3); 
-  lcdWrite(dtostrf(temp,5,2,tempStr));
-  lcdWrite("`C");
-
-  lcdXY(18,5);
-  lcdWrite("Status:OK");
+  display.clearDisplay();
+  display.print("V:");
+  display.println(analogRead(A4));
+  display.print("I:");
+  display.println(analogRead(A4));
+  display.print("T:");
+  display.println(analogRead(A4));
+  if(analogRead(A4)>500){
+    display.println("\nStatus:Not Okay");
+  }
+  else{
+    display.println("\nStatus:OK");
+  }
+  display.display();
+  delay(20);
   
 }
