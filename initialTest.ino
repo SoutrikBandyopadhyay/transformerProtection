@@ -37,34 +37,67 @@ DHT dht(tempPin, DHTTYPE);
 Adafruit_PCD8544 display = Adafruit_PCD8544(CLK,DIN,DC,CE,RST);
 
 
+
 float getVoltage(){
   return analogRead(voltagePin)*5.0/1024*5.7/1.414;
 }
 
-float getCurrent(){
+float getRmsCurrent(){
   int mVperAmp = 66; // use 100 for 20A Module and 66 for 30A Module
-  int RawValue= 0;
-  int ACSoffset = 2500; 
   double Voltage = 0;
-  double Amps = 0;
-  RawValue = analogRead(currentPin);
-  Voltage = (RawValue / 1024.0) * 5000; // Gets you mV
-  Amps = ((Voltage - ACSoffset) / mVperAmp);
+  double Vrms = 0;
+  double AmpsRms = 0;
+  Voltage = getVPP();
+  Vrms = (Voltage/2.0) * 0.707;
+  AmpsRms = (Vrms * 1000)/mVperAmp;
+  return AmpsRms;
+}
+
+float getVPP(){
+  int readValue;             
+  int maxValue = 0;          
+  int minValue = 1024;
+
+  uint32_t startTime = millis(); // Start Time
+  while((millis()-startTime)<1000){
+    readValue = analogRead(currentPin);
+    if(readValue>maxValue){
+      maxValue = readValue;
+    }
+    if(readValue<minValue){
+      minValue = readValue;
+    }
+    return ((maxValue - minValue) * 5.0)/1024.0;
+    
+  }
   
-  return Amps;
 }
 
 float readTemp(){
   float t = dht.readTemperature();
   return t;
+
 }
 
+void loadCut(){
+  digitalWrite(loadRelay,HIGH);
+}
 
+void fanOn(){
+  digitalWrite(fanRelay,HIGH);
+}
+
+void fanOff(){
+  digitalWrite(fanRelay,LOW);
+}
 
 
 void setup()   {
   Serial.begin(9600);
-
+  pinMode(loadRelay,OUTPUT);
+  pinMode(fanRelay,OUTPUT);
+  digitalWrite(loadRelay,LOW);
+  digitalWrite(fanRelay,LOW);
   display.begin();
   
   display.setContrast(50);
@@ -77,7 +110,7 @@ void setup()   {
   display.println("Transformer");
   display.println("  Protection");
   display.display();
-  delay(2000);
+  delay(1000);
   display.clearDisplay();
 
 }
@@ -88,7 +121,7 @@ void loop(){
   display.print("V:");
   display.println(getVoltage());
   display.print("I:");
-  display.println(getCurrent());
+  display.println(getRmsCurrent());
   display.print("T:");
   display.println(readTemp());
   if(analogRead(A4)>500){
@@ -99,5 +132,6 @@ void loop(){
   }
   display.display();
   delay(20);
+
   
 }
